@@ -1,0 +1,45 @@
+{
+  "name": "tree-sitter-wren",
+  "version": "1.0.0",
+  "description": "Tree sitter grammar for the Wren programming language",
+  "main": "bindings/node",
+  "types": "bindings/node",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "install": "node-gyp-build",
+    "prebuildify": "prebuildify --napi --strip"
+  },
+  "author": "Jummit",
+  "contributors": ["korvo"],
+  "license": "LGPL-3.0-or-later",
+  "tree-sitter": [
+    {
+      "scope": "source.wren",
+      "file-types": ["wren"]
+    }
+  ],
+  "dependencies": {
+    "node-addon-api": "^7.1.0",
+    "node-gyp-build": "^4.8.0"
+  },
+  "peerDependencies": {
+    "tree-sitter": "^0.21.0"
+  },
+  "peerDependenciesMeta": {
+    "tree_sitter": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "tree-sitter-cli": "^0.20.8",
+    "prebuildify": "^6.0.0"
+  },
+  "files": [
+    "grammar.js",
+    "binding.gyp",
+    "prebuilds/**",
+    "bindings/node/*",
+    "queries/*",
+    "src/**"
+  ]
+}
