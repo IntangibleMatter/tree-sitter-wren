@@ -3,6 +3,27 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
 // TODO: @readability Break some lines.
+
+const PREC = {
+  GROUPING: 16,
+  FACTOR: 15,
+  NEGATE: 14, // - ! ~
+  TERM: 13, // * / %
+  EXPR: 12, // + -
+  RANGE: 11,
+  BITSHIFT: 10,
+  BITAND: 9,
+  BITXOR: 8,
+  BITOR: 7,
+  COMPARISON: 6,
+  IS: 5,
+  EQUALS: 4,
+  AND: 3,
+  OR: 2,
+  CONDITIONAL: 1,
+  ASSIGN: 0,
+};
+
 module.exports = grammar({
   name: "wren",
 
@@ -42,38 +63,8 @@ module.exports = grammar({
       ),
     boolean: ($) => choice("true", "false"),
     return_statement: ($) => seq("return", $._expression),
-    assignment: ($) =>
-      seq(field("left", $._expression), "=", field("right", $._expression)),
-    unary_operator: ($) => choice("!", "-", "~"),
-    unary_expression: ($) =>
-      prec.left(2, seq(alias($.unary_operator, $.operator), $._expression)),
-
     // TODO: @correctness correct prescedence
-    binary_operator: ($) =>
-      choice(
-        "+",
-        "-",
-        "==",
-        "!=",
-        "<=",
-        ">=",
-        "&&",
-        "||",
-        "/",
-        "*",
-        "%",
-        ">>",
-        "<<",
-        "&",
-        "<",
-        ">",
-        "is",
-      ),
-    binary_expression: ($) =>
-      prec.left(
-        2,
-        seq($._expression, alias($.binary_operator, $.operator), $._expression),
-      ),
+
     block: ($) => seq("{", repeat(choice($._statement, $._expression)), "}"),
     parameter: ($) => alias($.name, "parameter"),
     parameter_list: ($) => seq($.parameter, repeat(seq(",", $.parameter))),
@@ -82,38 +73,26 @@ module.exports = grammar({
     variable_definition: ($) =>
       seq("var", field("name", $.name), "=", $._expression),
     call_expression: ($) =>
-      prec.left(
-        2,
-        choice(
-          seq(
-            field("function", choice($.name, $.index_expression)),
-            "(",
-            optional(alias($.argument_list, $.parameter_list)),
-            ")",
-          ),
-          prec.left(
-            4,
-            seq(
-              field("function", choice($.name, $.index_expression)),
-              optional(
-                seq(
-                  "(",
-                  optional(alias($.argument_list, $.parameter_list)),
-                  ")",
-                ),
-              ),
-              $.call_body,
-            ),
-          ),
-        ),
+      seq(
+        field("function", choice($.name, $.index_expression)),
+        "(",
+        optional(alias($.argument_list, $.parameter_list)),
+        ")",
       ),
     call_body: ($) =>
       seq(
-        "{",
-        optional(seq("|", alias($.argument_list, $.parameter_list), "|")),
-        field("body", repeat(choice($._statement, $._expression))),
-        "}",
+        field("function", choice($.name, $.index_expression)),
+        optional(
+          seq("(", optional(alias($.argument_list, $.parameter_list)), ")"),
+        ),
+        seq(
+          "{",
+          optional(seq("|", alias($.argument_list, $.parameter_list), "|")),
+          field("body", repeat(choice($._statement, $._expression))),
+          "}",
+        ),
       ),
+
     class_definition: ($) =>
       seq(
         repeat($._any_attribute),
@@ -122,12 +101,44 @@ module.exports = grammar({
         optional(seq("is", $.name)),
         $.class_body,
       ),
+    foreign_class_definition: ($) =>
+      seq(repeat($._any_attribute), "foreign", "class", $.name, $.class_body),
+
     class_body: class_body,
+
     getter_definition: ($) => seq($.name, field("body", $.block)),
+    foreign_getter_definition: ($) => seq("foreign", $.name),
+
     setter_definition: ($) =>
       seq($.name, "=", "(", $.parameter, ")", field("body", $.block)),
+    foreign_setter_definition: ($) =>
+      seq("foreign", $.name, "=", "(", $.parameter, ")"),
+
+    foreign_method_internal: ($) =>
+      seq($.name, "(", optional($.parameter_list), ")"),
+
+    method_definition: ($) =>
+      seq($.name, "(", optional($.parameter_list), ")", field("body", $.block)),
+    foreign_method_definition: ($) => seq("foreign", $.foreign_method_internal),
+
+    constructor: ($) => seq("construct", $.method_definition),
+    foreign_constructor: ($) =>
+      seq("foreign", "construct", $.foreign_method_internal),
+
+    static_method_definition: ($) => seq("static", $.method_definition),
+    foreign_static_method_definition: ($) =>
+      prec(1, seq("foreign", "static", $.foreign_method_internal)),
+
+    static_getter_definition: ($) =>
+      seq("foreign", "static", $.name, "=", "(", $.parameter, ")"),
+    foreign_static_getter_definition: ($) =>
+      prec(1, seq("foreign", "static", $.name, "=", "(", $.parameter, ")")),
+
     prefix_operator_definition: ($) =>
-      seq(alias(/[+-]/, $.operator), field("body", $.block)),
+      seq(
+        alias(choice("+", "-", "*", "/"), $.operator),
+        field("body", $.block),
+      ),
     subscript_operator_definition: ($) =>
       seq("[", $.parameter_list, "]", field("body", $.block)),
     subscript_setter_definition: ($) =>
@@ -143,18 +154,12 @@ module.exports = grammar({
       ),
     infix_operator_definition: ($) =>
       seq(
-        alias(/[+-]/, $.operator),
+        alias(choice("+", "-", "*", "/"), $.operator),
         "(",
         $.parameter,
         ")",
         field("body", $.block),
       ),
-    method_definition: ($) =>
-      seq($.name, "(", optional($.parameter_list), ")", field("body", $.block)),
-    constructor: ($) => seq("construct", $.method_definition),
-    static_method_definition: ($) => seq("static", $.method_definition),
-    static_getter_definition: ($) =>
-      seq("static", alias($.getter_definition, "getter")),
     conditional: ($) =>
       prec.left(seq($._expression, "?", $._expression, ":", $._expression)),
     list: ($) =>
@@ -164,9 +169,7 @@ module.exports = grammar({
         "]",
       ),
     index_expression: ($) => seq($._expression, ".", $.name),
-    subscript: ($) => prec(1, seq($._expression, "[", $._expression, "]")),
-    range: ($) =>
-      prec.left(seq($._expression, choice("..", "..."), $._expression)),
+
     if_statement: ($) =>
       prec.left(
         seq(
@@ -264,8 +267,8 @@ module.exports = grammar({
         $.break_statement,
         $.continue_statement,
         $.class_definition,
+        $.foreign_class_definition,
         $.variable_definition,
-        $.assignment,
         $.if_statement,
         $.for_statement,
         $.while_statement,
@@ -274,40 +277,140 @@ module.exports = grammar({
       ),
     _expression: ($) =>
       choice(
-        $.conditional,
-        $.unary_expression,
-        $.binary_expression,
-        $.raw_string,
-        $.string,
-        $.boolean,
-        $.number,
-        $.null,
-        $.static_field,
-        $.field,
-        $.name,
-        $.list,
-        $.range,
-        $.map,
-        $.subscript,
-        $.call_expression,
-        $.index_expression,
+        prec.left(
+          PREC.GROUPING,
+          choice(
+            seq($._expression, "[", $._expression, "]"),
+            seq("(", $._expression, ")"),
+          ),
+        ),
+        prec.left(
+          PREC.FACTOR,
+          choice(
+            $.raw_string,
+            $.string,
+            $.boolean,
+            $.number,
+            $.null,
+            $.static_field,
+            $.field,
+            $.name,
+            $.list,
+            $.map,
+            $.index_expression,
+            $.call_expression,
+          ),
+        ),
+        prec.right(
+          PREC.NEGATE,
+          seq(alias(choice("!", "~", "-"), $.operator), $._expression),
+        ),
+        prec.left(
+          PREC.TERM,
+          seq(
+            $._expression,
+            alias(choice("*", "/", "%"), $.operator),
+            $._expression,
+          ),
+        ),
+        prec.left(
+          PREC.EXPR,
+          seq(
+            $._expression,
+            alias(choice("-", "+"), $.operator),
+            $._expression,
+          ),
+        ),
+        prec.left(
+          PREC.RANGE,
+          seq(
+            $._expression,
+            alias(choice("..", "..."), $.operator),
+            $._expression,
+          ),
+        ),
+        prec.left(
+          PREC.BITSHIFT,
+          seq(
+            $._expression,
+            alias(choice("<<", ">>"), $.operator),
+            $._expression,
+          ),
+        ),
+        prec.left(
+          PREC.BITAND,
+          seq($._expression, alias("&", $.operator), $._expression),
+        ),
+        prec.left(
+          PREC.BITXOR,
+          seq($._expression, alias("^", $.operator), $._expression),
+        ),
+        prec.left(
+          PREC.BITOR,
+          seq($._expression, alias("|", $.operator), $._expression),
+        ),
+        prec.left(
+          PREC.COMPARISON,
+          seq(
+            $._expression,
+            alias(choice("<", "<=", ">", ">="), $.operator),
+            $._expression,
+          ),
+        ),
+        prec.left(
+          PREC.IS,
+          seq($._expression, alias("is", $.operator), $._expression),
+        ),
+        prec.left(
+          PREC.EQUALS,
+          seq(
+            $._expression,
+            alias(choice("==", "!="), $.operator),
+            $._expression,
+          ),
+        ),
+        prec.left(
+          PREC.AND,
+          seq($._expression, alias("&&", $.operator), $._expression),
+        ),
+        prec.left(
+          PREC.OR,
+          seq($._expression, alias("||", $.operator), $._expression),
+        ),
+        prec.right(
+          PREC.CONDITIONAL,
+          seq($._expression, "?", $._expression, ":", $._expression),
+        ),
+        prec.right(
+          PREC.ASSIGN,
+          seq(field("left", $._expression), "=", field("right", $._expression)),
+        ),
       ),
   },
 });
 
 function class_body($) {
   const possible = [
-    $.getter_definition,
-    $.setter_definition,
     $.prefix_operator_definition,
     $.subscript_operator_definition,
     $.subscript_setter_definition,
     $.infix_operator_definition,
+
     $.constructor,
+    $.getter_definition,
+    $.setter_definition,
     $.static_method_definition,
     $.static_getter_definition,
     $.method_definition,
+
+    $.foreign_constructor,
+    $.foreign_getter_definition,
+    $.foreign_setter_definition,
+    $.foreign_static_method_definition,
+    $.foreign_static_getter_definition,
+    $.foreign_method_definition,
   ];
+
   return seq(
     "{",
     repeat(choice(...possible.map((a) => seq(repeat($.attribute), a)))),

@@ -1,0 +1,45 @@
+{
+	"grammars": [
+		{
+			"name": "wren",
+			"camelcase": "Wren",
+			"scope": "source.wren",
+			"file-types": [".wren"],
+			"injection-regex": "^wren$"
+		}
+	],
+	"metadata": {
+		"version": "0.1.0",
+		"license": "MIT",
+		"description": "Nathan Hoad's Godot wren Manager language",
+		"authors": [
+			{
+				"name": "IntangibleMatter",
+				"email": "intangiblematter@intangiblematter.net",
+				"url": "https://intangiblematter.net/"
+			}
+		],
+		"links": {
+			"repository": "https://github.com/intangiblematter/tree-sitter-wren"
+		}
+	},
+	"tree-sitter": {
+		"highlights": "queries/highlights.scm"
+	},
+	"theme": {
+		"keyword": "purple",
+		"function": "blue",
+		"type": "green",
+		"number": "brown",
+		"bracket": "yellow",
+		"boolean": "red"
+	},
+	"bindings": {
+		"c": true,
+		"go": true,
+		"node": true,
+		"python": true,
+		"rust": true,
+		"swift": true
+	}
+}
