@@ -436,14 +436,49 @@
         }
       ]
     },
+    "typed_variable": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": ":"
+        },
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "name"
+          },
+          "named": false,
+          "value": "type"
+        }
+      ]
+    },
     "parameter": {
-      "type": "ALIAS",
-      "content": {
-        "type": "SYMBOL",
-        "name": "name"
-      },
-      "named": false,
-      "value": "parameter"
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "ALIAS",
+          "content": {
+            "type": "SYMBOL",
+            "name": "name"
+          },
+          "named": false,
+          "value": "parameter"
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "typed_variable"
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        }
+      ]
     },
     "parameter_list": {
       "type": "SEQ",
@@ -503,13 +538,9 @@
         }
       ]
     },
-    "variable_definition": {
+    "_variable_definition": {
       "type": "SEQ",
       "members": [
-        {
-          "type": "STRING",
-          "value": "var"
-        },
         {
           "type": "FIELD",
           "name": "name",
@@ -517,6 +548,18 @@
             "type": "SYMBOL",
             "name": "name"
           }
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "typed_variable"
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
         },
         {
           "type": "STRING",
@@ -527,6 +570,23 @@
           "name": "_expression"
         }
       ]
+    },
+    "variable_definition": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "var"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_variable_definition"
+        }
+      ]
+    },
+    "class_property_definition": {
+      "type": "SYMBOL",
+      "name": "_variable_definition"
     },
     "call_expression": {
       "type": "PREC_LEFT",
@@ -719,19 +779,31 @@
       "type": "SEQ",
       "members": [
         {
-          "type": "REPEAT",
-          "content": {
-            "type": "SYMBOL",
-            "name": "_any_attribute"
-          }
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "REPEAT",
+              "content": {
+                "type": "SYMBOL",
+                "name": "_any_attribute"
+              }
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
         },
         {
           "type": "STRING",
           "value": "class"
         },
         {
-          "type": "SYMBOL",
-          "name": "name"
+          "type": "FIELD",
+          "name": "name",
+          "content": {
+            "type": "SYMBOL",
+            "name": "name"
+          }
         },
         {
           "type": "CHOICE",
@@ -931,6 +1003,22 @@
                     "name": "method_definition"
                   }
                 ]
+              },
+              {
+                "type": "SEQ",
+                "members": [
+                  {
+                    "type": "REPEAT",
+                    "content": {
+                      "type": "SYMBOL",
+                      "name": "attribute"
+                    }
+                  },
+                  {
+                    "type": "SYMBOL",
+                    "name": "class_property_definition"
+                  }
+                ]
               }
             ]
           }
@@ -947,6 +1035,18 @@
         {
           "type": "SYMBOL",
           "name": "name"
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "typed_variable"
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
         },
         {
           "type": "FIELD",
@@ -1117,8 +1217,12 @@
       "type": "SEQ",
       "members": [
         {
-          "type": "SYMBOL",
-          "name": "name"
+          "type": "FIELD",
+          "name": "name",
+          "content": {
+            "type": "SYMBOL",
+            "name": "name"
+          }
         },
         {
           "type": "STRING",

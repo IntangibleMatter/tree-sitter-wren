@@ -75,12 +75,22 @@ module.exports = grammar({
         seq($._expression, alias($.binary_operator, $.operator), $._expression),
       ),
     block: ($) => seq("{", repeat(choice($._statement, $._expression)), "}"),
-    parameter: ($) => alias($.name, "parameter"),
+    typed_variable: ($) => seq(":", alias($.name, "type")),
+    parameter: ($) =>
+      seq(alias($.name, "parameter"), optional($.typed_variable)),
     parameter_list: ($) => seq($.parameter, repeat(seq(",", $.parameter))),
     argument_list: ($) =>
       seq($._expression, optional(repeat(seq(",", $._expression)))),
-    variable_definition: ($) =>
-      seq("var", field("name", $.name), "=", $._expression),
+    _variable_definition: ($) =>
+      seq(
+        field("name", $.name),
+        optional($.typed_variable),
+        "=",
+        $._expression,
+      ),
+
+    variable_definition: ($) => seq("var", $._variable_definition),
+    class_property_definition: ($) => $._variable_definition,
     call_expression: ($) =>
       prec.left(
         2,
@@ -116,14 +126,15 @@ module.exports = grammar({
       ),
     class_definition: ($) =>
       seq(
-        repeat($._any_attribute),
+        optional(repeat($._any_attribute)),
         "class",
-        $.name,
+        field("name", $.name),
         optional(seq("is", $.name)),
         $.class_body,
       ),
     class_body: class_body,
-    getter_definition: ($) => seq($.name, field("body", $.block)),
+    getter_definition: ($) =>
+      seq($.name, optional($.typed_variable), field("body", $.block)),
     setter_definition: ($) =>
       seq($.name, "=", "(", $.parameter, ")", field("body", $.block)),
     prefix_operator_definition: ($) =>
@@ -150,7 +161,13 @@ module.exports = grammar({
         field("body", $.block),
       ),
     method_definition: ($) =>
-      seq($.name, "(", optional($.parameter_list), ")", field("body", $.block)),
+      seq(
+        field("name", $.name),
+        "(",
+        optional($.parameter_list),
+        ")",
+        field("body", $.block),
+      ),
     constructor: ($) => seq("construct", $.method_definition),
     static_method_definition: ($) => seq("static", $.method_definition),
     static_getter_definition: ($) =>
@@ -307,6 +324,7 @@ function class_body($) {
     $.static_method_definition,
     $.static_getter_definition,
     $.method_definition,
+    $.class_property_definition,
   ];
   return seq(
     "{",

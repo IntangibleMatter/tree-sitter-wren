@@ -14,6 +14,8 @@
 "import" @keyword.import
 "return" @keyword.return
 
+
+
 ; Special Builtins
 ;((identifier) @variable.builtin
 ;  (#any-of? @variable.builtin "self" "super"))
@@ -66,5 +68,21 @@
 ;(binary_operator) @operator
 ;(unary_operator) @operator
 
-; blocks
+; blocks and the like
+(class_definition
+  name: (name) @type
+  (class_body))
 
+(variable_definition
+  name: (name)) @property
+
+(method_definition
+  name: (name)
+  (parameter_list)
+  body: (block))
+
+(attribute
+  (attribute_value)) @attribute
+
+(runtime_attribute
+  (attribute_value)) @attribute
